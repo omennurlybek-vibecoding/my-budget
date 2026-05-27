@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мой Бюджет</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F3EE;
+    --surface: #FDFCFA;
+    --accent: #2E7D5E;
+    --accent-light: #E8F3EE;
+    --accent2: #C84B31;
+    --accent2-light: #FAEAE6;
+    --gold: #C9963A;
+    --gold-light: #FBF3E3;
+    --ink: #1C1A17;
+    --ink2: #6B6760;
+    --border: #E8E5DF;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 0 0 80px;
+  }
+
+  h1, h2, .num { font-family: 'DM Serif Display', serif; }
+
+  .container { max-width: 520px; margin: 0 auto; padding: 0 16px; }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(28,26,23,.06);
+  }
+  header .container { display: flex; flex-direction: column; gap: 16px; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; }
+  .app-title { font-size: 22px; letter-spacing: -.3px; }
+  .income-wrap { display: flex; align-items: center; gap: 8px; }
+  .income-label { font-size: 13px; color: var(--ink2); }
+  .income-field-wrap { position: relative; }
+  .income-field-wrap span {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    font-family: 'DM Serif Display', serif; font-size: 16px; color: var(--accent);
+  }
+  #incomeInput {
+    font-family: 'DM Serif Display', serif; font-size: 18px;
+    width: 160px; padding: 8px 8px 8px 28px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--ink); outline: none;
+  }
+  #incomeInput:focus { border-color: var(--accent); }
+
+  /* ── Summary card ── */
+  .summary-card {
+    background: var(--accent); color: #fff;
+    border-radius: var(--radius); padding: 20px;
+    margin: 20px 0 0;
+  }
+  .summary-card-inner { display: flex; justify-content: space-between; align-items: flex-start; }
+  .summary-label { font-size: 12px; opacity: .75; margin-bottom: 4px; text-transform: uppercase; letter-spacing: .5px; }
+  .summary-amount { font-size: 32px; letter-spacing: -.5px; }
+  .summary-amount.negative { color: #FFB3A5; }
+  .summary-right { text-align: right; }
+  .summary-percent { font-size: 13px; opacity: .8; margin-top: 4px; }
+  .progress-wrap { margin-top: 14px; }
+  .progress-bg { background: rgba(255,255,255,.25); border-radius: 99px; height: 8px; overflow: hidden; }
+  .progress-fill {
+    height: 100%; border-radius: 99px;
+    background: #fff; transition: width .4s ease;
+    max-width: 100%;
+  }
+  .progress-fill.danger { background: #FFB3A5; }
+  header .summary-card { margin: 0 0 0; }
+  .header-bottom { padding-bottom: 0; }
+
+  /* Sections */
+  section { margin-top: 24px; }
+  .section-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--ink2); margin-bottom: 12px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface); border-radius: var(--radius);
+    border: 1px solid var(--border); overflow: hidden;
+  }
+
+  /* Add form row */
+  .add-row {
+    display: grid; grid-template-columns: 52px 1fr 110px 44px;
+    gap: 8px; padding: 12px; align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .emoji-select {
+    font-size: 20px; text-align: center;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg); padding: 8px 4px; cursor: pointer;
+    height: 44px; outline: none;
+  }
+  .emoji-select:focus { border-color: var(--accent); }
+  .text-input, .amount-input {
+    height: 44px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--ink); font-family: 'DM Sans', sans-serif;
+    font-size: 15px; padding: 0 12px; outline: none; width: 100%;
+  }
+  .text-input:focus, .amount-input:focus { border-color: var(--accent); }
+  .amount-input { font-family: 'DM Serif Display', serif; font-size: 16px; }
+  .btn-add {
+    height: 44px; width: 44px; border-radius: var(--radius-sm);
+    background: var(--accent); color: #fff; border: none; cursor: pointer;
+    font-size: 22px; display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .btn-add:hover { background: #245e47; }
+
+  /* Expense item */
+  .expense-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 12px 12px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+  }
+  .expense-item:last-child { border-bottom: none; }
+  .expense-item:hover { background: var(--bg); }
+  .expense-emoji { font-size: 22px; width: 32px; text-align: center; flex-shrink: 0; }
+  .expense-name { flex: 1; font-size: 15px; }
+  .expense-amount { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--ink); }
+  .expense-delete {
+    background: none; border: none; cursor: pointer; color: var(--ink2);
+    font-size: 18px; padding: 4px 8px; border-radius: 6px; transition: all .15s;
+    opacity: .5;
+  }
+  .expense-delete:hover { background: var(--accent2-light); color: var(--accent2); opacity: 1; }
+  .empty-state { padding: 24px; text-align: center; color: var(--ink2); font-size: 14px; }
+
+  /* Daily tabs */
+  .tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .tab {
+    flex: 1; padding: 12px; text-align: center; font-size: 14px; font-weight: 500;
+    color: var(--ink2); cursor: pointer; border: none; background: none;
+    border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .daily-total {
+    padding: 10px 16px; font-size: 13px; color: var(--ink2);
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .daily-total strong { font-family: 'DM Serif Display', serif; font-size: 15px; color: var(--ink); }
+
+  /* Analytics */
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tile {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+  }
+  .tile-label { font-size: 11px; color: var(--ink2); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .tile-value { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--ink); }
+  .tile-sub { font-size: 12px; color: var(--ink2); margin-top: 2px; }
+  .tile.accent-tile { background: var(--accent-light); border-color: transparent; }
+  .tile.danger-tile { background: var(--accent2-light); border-color: transparent; }
+  .tile.gold-tile { background: var(--gold-light); border-color: transparent; }
+
+  /* Donut chart */
+  .chart-wrap { display: flex; align-items: center; gap: 24px; margin-top: 12px; }
+  .donut-canvas { flex-shrink: 0; }
+  .legend { display: flex; flex-direction: column; gap: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Goal */
+  .goal-section { margin-top: 20px; }
+  .goal-input-wrap {
+    display: flex; gap: 8px; margin-bottom: 16px; align-items: center;
+  }
+  .goal-label { font-size: 14px; color: var(--ink2); white-space: nowrap; }
+  #goalInput {
+    font-family: 'DM Serif Display', serif; font-size: 16px;
+    height: 44px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg); color: var(--ink); padding: 0 12px; outline: none; width: 100%;
+  }
+  #goalInput:focus { border-color: var(--accent); }
+  .goal-progress-wrap { padding: 16px; }
+  .goal-bar-bg { background: var(--border); border-radius: 99px; height: 10px; overflow: hidden; margin: 8px 0; }
+  .goal-bar-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width .4s ease; }
+  .goal-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink2); }
+  .goal-meta strong { color: var(--ink); }
+
+  /* Insight */
+  .insight-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px; margin-top: 12px;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .insight-icon { font-size: 28px; flex-shrink: 0; }
+  .insight-text { font-size: 15px; line-height: 1.55; color: var(--ink); }
+
+  /* Responsive tweaks */
+  @media (max-width: 400px) {
+    .add-row { grid-template-columns: 44px 1fr 90px 40px; gap: 6px; }
+    .summary-amount { font-size: 26px; }
+    .tiles { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <div class="header-top">
+      <h1 class="app-title">Мой Бюджет 💰</h1>
+      <div class="income-wrap">
+        <span class="income-label">Доход</span>
+        <div class="income-field-wrap">
+          <span>₸</span>
+          <input id="incomeInput" type="number" placeholder="0" min="0">
+        </div>
+      </div>
+    </div>
+    <div class="header-bottom">
+      <div class="summary-card">
+        <div class="summary-card-inner">
+          <div>
+            <div class="summary-label">Остаток</div>
+            <div class="num summary-amount" id="balanceDisplay">₸ 0</div>
+          </div>
+          <div class="summary-right">
+            <div class="summary-label">Потрачено</div>
+            <div class="num summary-amount" id="spentDisplay">₸ 0</div>
+            <div class="summary-percent" id="spentPercent">0% от дохода</div>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bg">
+            <div class="progress-fill" id="mainProgressBar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Fixed expenses -->
+  <section>
+    <div class="section-title">Обязательные расходы</div>
+    <div class="card">
+      <div class="add-row">
+        <select class="emoji-select" id="fixedEmoji">
+          <option>🏠</option><option>💳</option><option>📱</option>
+          <option>💡</option><option>🚗</option><option>🎓</option>
+          <option>🏥</option><option>🛒</option><option>📺</option>
+          <option>🌐</option><option>👶</option><option>🐾</option>
+        </select>
+        <input class="text-input" id="fixedName" type="text" placeholder="Название">
+        <input class="amount-input" id="fixedAmount" type="number" placeholder="Сумма" min="0">
+        <button class="btn-add" id="addFixed">+</button>
+      </div>
+      <div id="fixedList"></div>
+    </div>
+  </section>
+
+  <!-- Daily expenses -->
+  <section>
+    <div class="section-title">Ежедневные расходы</div>
+    <div class="card">
+      <div class="add-row">
+        <select class="emoji-select" id="dailyEmoji">
+          <option>☕</option><option>🍕</option><option>🚌</option>
+          <option>🎬</option><option>🛍️</option><option>🥗</option>
+          <option>🍔</option><option>🍺</option><option>💊</option>
+          <option>📚</option><option>✂️</option><option>⛽</option>
+        </select>
+        <input class="text-input" id="dailyName" type="text" placeholder="Название">
+        <input class="amount-input" id="dailyAmount" type="number" placeholder="Сумма" min="0">
+        <button class="btn-add" id="addDaily">+</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-tab="today">Сегодня</button>
+        <button class="tab" data-tab="yesterday">Вчера</button>
+        <button class="tab" data-tab="week">Неделя</button>
+      </div>
+      <div class="daily-total">
+        <span id="dailyTabLabel">Сегодня</span>
+        <strong id="dailyTabTotal">₸ 0</strong>
+      </div>
+      <div id="dailyList"></div>
+    </div>
+  </section>
+
+  <!-- Analytics -->
+  <section>
+    <div class="section-title">Аналитика</div>
+    <div class="tiles">
+      <div class="tile accent-tile">
+        <div class="tile-label">Свободно</div>
+        <div class="tile-value num" id="tFree">₸ 0</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Расходы</div>
+        <div class="tile-value num" id="tSpent">₸ 0</div>
+      </div>
+      <div class="tile gold-tile">
+        <div class="tile-label">В день</div>
+        <div class="tile-value num" id="tPerDay">₸ 0</div>
+        <div class="tile-sub" id="tPerDaySub"></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label">Сберегаю</div>
+        <div class="tile-value num" id="tSave">0%</div>
+      </div>
+    </div>
+
+    <!-- Donut -->
+    <div class="card" style="margin-top:12px; padding: 20px;">
+      <div class="chart-wrap">
+        <canvas id="donutCanvas" width="120" height="120" class="donut-canvas"></canvas>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#C84B31"></div><span id="legendFixed">Обязательные: 0%</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#C9963A"></div><span id="legendDaily">Ежедневные: 0%</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#2E7D5E"></div><span id="legendFree">Остаток: 100%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Goal -->
+    <div class="goal-section">
+      <div class="goal-input-wrap">
+        <span class="goal-label">Цель накоплений ₸</span>
+        <input id="goalInput" type="number" placeholder="0" min="0">
+      </div>
+      <div class="card goal-progress-wrap" id="goalCard" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:14px;">Прогресс к цели</span>
+          <strong id="goalPercent" class="num" style="font-size:18px;">0%</strong>
+        </div>
+        <div class="goal-bar-bg"><div class="goal-bar-fill" id="goalBar" style="width:0%"></div></div>
+        <div class="goal-meta">
+          <span>Накоплено: <strong id="goalSaved">₸ 0</strong></span>
+          <span>Ещё нужно: <strong id="goalLeft">₸ 0</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Insight -->
+    <div class="section-title" style="margin-top:20px">Персональный совет</div>
+    <div class="insight-card">
+      <div class="insight-icon" id="insightIcon">💡</div>
+      <div class="insight-text" id="insightText">Введите доход и расходы, чтобы получить персональный совет.</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ── Storage ──────────────────────────────────────────────────────────────────
+const KEY = 'budget_v2';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }
+}
+
+function save(data) {
+  localStorage.setItem(KEY, JSON.stringify(data));
+}
+
+let state = {
+  income: 0,
+  goal: 0,
+  fixed: [],
+  daily: {},
+  ...load()
+};
+
+// ── Date helpers ──────────────────────────────────────────────────────────────
+function todayKey() { return new Date().toISOString().slice(0, 10); }
+function yesterdayKey() {
+  const d = new Date(); d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+function weekKeys() {
+  const keys = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    keys.push(d.toISOString().slice(0, 10));
+  }
+  return keys;
+}
+
+// ── Format ────────────────────────────────────────────────────────────────────
+function fmt(n) {
+  return '₸ ' + Math.abs(Math.round(n)).toLocaleString('ru-RU');
+}
+function pct(a, b) { return b > 0 ? Math.min(100, Math.round(a / b * 100)) : 0; }
+
+// ── Computed values ───────────────────────────────────────────────────────────
+function totalFixed() { return state.fixed.reduce((s, x) => s + x.amount, 0); }
+
+function totalDailyForKeys(keys) {
+  return keys.reduce((s, k) => {
+    return s + (state.daily[k] || []).reduce((ss, x) => ss + x.amount, 0);
+  }, 0);
+}
+
+function totalDailyMonth() { return totalDailyForKeys(weekKeys()); } // using week as month proxy for MVP
+
+function balance() { return state.income - totalFixed() - totalDailyMonth(); }
+
+// ── Render header summary ─────────────────────────────────────────────────────
+function renderSummary() {
+  const spent = totalFixed() + totalDailyMonth();
+  const bal = state.income - spent;
+  const pctSpent = pct(spent, state.income);
+
+  const balEl = document.getElementById('balanceDisplay');
+  balEl.textContent = (bal < 0 ? '-' : '') + fmt(bal);
+  balEl.classList.toggle('negative', bal < 0);
+
+  document.getElementById('spentDisplay').textContent = fmt(spent);
+  document.getElementById('spentPercent').textContent = pctSpent + '% от дохода';
+
+  const bar = document.getElementById('mainProgressBar');
+  bar.style.width = pctSpent + '%';
+  bar.classList.toggle('danger', pctSpent >= 90);
+}
+
+// ── Render fixed list ─────────────────────────────────────────────────────────
+function renderFixed() {
+  const el = document.getElementById('fixedList');
+  if (!state.fixed.length) {
+    el.innerHTML = '<div class="empty-state">Нет обязательных расходов</div>';
+    return;
+  }
+  el.innerHTML = state.fixed.map(item => `
+    <div class="expense-item">
+      <span class="expense-emoji">${item.emoji}</span>
+      <span class="expense-name">${escHtml(item.name)}</span>
+      <span class="expense-amount">${fmt(item.amount)}</span>
+      <button class="expense-delete" data-id="${item.id}" data-type="fixed">✕</button>
+    </div>
+  `).join('');
+}
+
+// ── Render daily list ─────────────────────────────────────────────────────────
+let activeTab = 'today';
+
+function renderDaily() {
+  const el = document.getElementById('dailyList');
+  const totalEl = document.getElementById('dailyTabTotal');
+  const labelEl = document.getElementById('dailyTabLabel');
+
+  let items = [];
+  let label = '';
+  let total = 0;
+
+  if (activeTab === 'today') {
+    items = state.daily[todayKey()] || [];
+    label = 'Сегодня';
+    total = totalDailyForKeys([todayKey()]);
+  } else if (activeTab === 'yesterday') {
+    items = state.daily[yesterdayKey()] || [];
+    label = 'Вчера';
+    total = totalDailyForKeys([yesterdayKey()]);
+  } else {
+    const keys = weekKeys();
+    items = keys.flatMap(k => (state.daily[k] || []).map(x => ({ ...x, _date: k })));
+    label = 'За 7 дней';
+    total = totalDailyForKeys(keys);
+  }
+
+  labelEl.textContent = label;
+  totalEl.textContent = fmt(total);
+
+  if (!items.length) {
+    el.innerHTML = '<div class="empty-state">Нет записей</div>';
+    return;
+  }
+
+  el.innerHTML = items.map(item => `
+    <div class="expense-item">
+      <span class="expense-emoji">${item.emoji}</span>
+      <span class="expense-name">${escHtml(item.name)}${item._date ? `<br><small style="color:var(--ink2);font-size:12px">${item._date}</small>` : ''}</span>
+      <span class="expense-amount">${fmt(item.amount)}</span>
+      ${activeTab !== 'week' ? `<button class="expense-delete" data-id="${item.id}" data-type="daily" data-date="${activeTab === 'today' ? todayKey() : yesterdayKey()}">✕</button>` : ''}
+    </div>
+  `).join('');
+}
+
+// ── Render analytics ──────────────────────────────────────────────────────────
+function renderAnalytics() {
+  const fixedTotal = totalFixed();
+  const dailyTotal = totalDailyMonth();
+  const spent = fixedTotal + dailyTotal;
+  const bal = Math.max(0, state.income - spent);
+  const savePct = pct(bal, state.income);
+
+  document.getElementById('tFree').textContent = fmt(bal);
+  document.getElementById('tSpent').textContent = fmt(spent);
+
+  // Per-day average
+  const activeDays = weekKeys().filter(k => (state.daily[k] || []).length).length || 1;
+  document.getElementById('tPerDay').textContent = fmt(dailyTotal / activeDays);
+  document.getElementById('tPerDaySub').textContent = `за ${activeDays} ${dayWord(activeDays)}`;
+
+  document.getElementById('tSave').textContent = savePct + '%';
+
+  // Donut
+  drawDonut(fixedTotal, dailyTotal, bal, state.income);
+
+  // Legend
+  document.getElementById('legendFixed').textContent = `Обязательные: ${pct(fixedTotal, state.income)}%`;
+  document.getElementById('legendDaily').textContent = `Ежедневные: ${pct(dailyTotal, state.income)}%`;
+  document.getElementById('legendFree').textContent = `Остаток: ${pct(bal, state.income)}%`;
+
+  // Goal
+  const goalCard = document.getElementById('goalCard');
+  if (state.goal > 0) {
+    goalCard.style.display = 'block';
+    const saved = Math.max(0, state.income - spent);
+    const gPct = pct(saved, state.goal);
+    const left = Math.max(0, state.goal - saved);
+    document.getElementById('goalPercent').textContent = gPct + '%';
+    document.getElementById('goalBar').style.width = Math.min(100, gPct) + '%';
+    document.getElementById('goalSaved').textContent = fmt(saved);
+    document.getElementById('goalLeft').textContent = fmt(left);
+  } else {
+    goalCard.style.display = 'none';
+  }
+
+  // Insight
+  renderInsight(spent, fixedTotal, dailyTotal, savePct);
+}
+
+function renderInsight(spent, fixedTotal, dailyTotal, savePct) {
+  const icon = document.getElementById('insightIcon');
+  const text = document.getElementById('insightText');
+
+  if (!state.income) {
+    icon.textContent = '💡';
+    text.textContent = 'Введите доход и расходы, чтобы получить персональный совет.';
+    return;
+  }
+  if (spent > state.income) {
+    icon.textContent = '🚨';
+    text.textContent = 'Вы тратите больше, чем зарабатываете. Пересмотрите расходы — особенно обязательные статьи.';
+  } else if (savePct >= 20) {
+    icon.textContent = '🌟';
+    text.textContent = `Отлично! Вы откладываете ${savePct}% дохода. Это отличный результат — продолжайте в том же духе!`;
+  } else if (savePct >= 10) {
+    icon.textContent = '📈';
+    text.textContent = `Вы откладываете ${savePct}% дохода. Постарайтесь довести до 20% — небольшие сокращения ежедневных расходов помогут.`;
+  } else if (fixedTotal > state.income * 0.5) {
+    icon.textContent = '⚖️';
+    text.textContent = `Обязательные расходы занимают больше 50% дохода. По правилу 50/30/20: 50% — нужды, 30% — желания, 20% — накопления.`;
+  } else {
+    icon.textContent = '💡';
+    text.textContent = 'Попробуйте откладывать хотя бы 10% от дохода каждый месяц — это хороший старт для создания подушки безопасности.';
+  }
+}
+
+// ── Donut chart ───────────────────────────────────────────────────────────────
+function drawDonut(fixed, daily, free, income) {
+  const canvas = document.getElementById('donutCanvas');
+  const ctx = canvas.getContext('2d');
+  const cx = 60, cy = 60, r = 50, lineW = 18;
+
+  ctx.clearRect(0, 0, 120, 120);
+
+  const total = income || 1;
+  const segments = [
+    { value: fixed, color: '#C84B31' },
+    { value: daily, color: '#C9963A' },
+    { value: Math.max(0, income - fixed - daily), color: '#2E7D5E' },
+  ];
+
+  // Normalize so they fill circle
+  const sum = segments.reduce((s, x) => s + x.value, 0) || 1;
+  let angle = -Math.PI / 2;
+
+  const hasData = income > 0;
+
+  if (!hasData) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = '#E8E5DF';
+    ctx.lineWidth = lineW;
+    ctx.stroke();
+  } else {
+    segments.forEach(seg => {
+      const sweep = (seg.value / total) * Math.PI * 2;
+      if (sweep <= 0) return;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, angle, angle + sweep);
+      ctx.strokeStyle = seg.color;
+      ctx.lineWidth = lineW;
+      ctx.lineCap = 'butt';
+      ctx.stroke();
+      angle += sweep;
+    });
+  }
+}
+
+// ── Full render ───────────────────────────────────────────────────────────────
+function render() {
+  renderSummary();
+  renderFixed();
+  renderDaily();
+  renderAnalytics();
+}
+
+// ── Init inputs ───────────────────────────────────────────────────────────────
+document.getElementById('incomeInput').value = state.income || '';
+document.getElementById('goalInput').value = state.goal || '';
+
+document.getElementById('incomeInput').addEventListener('input', e => {
+  state.income = parseFloat(e.target.value) || 0;
+  save(state);
+  render();
+});
+
+document.getElementById('goalInput').addEventListener('input', e => {
+  state.goal = parseFloat(e.target.value) || 0;
+  save(state);
+  render();
+});
+
+// ── Add fixed ─────────────────────────────────────────────────────────────────
+document.getElementById('addFixed').addEventListener('click', () => {
+  const emoji = document.getElementById('fixedEmoji').value;
+  const name = document.getElementById('fixedName').value.trim();
+  const amount = parseFloat(document.getElementById('fixedAmount').value);
+  if (!name || !amount) return;
+  state.fixed.push({ id: Date.now(), emoji, name, amount });
+  save(state);
+  document.getElementById('fixedName').value = '';
+  document.getElementById('fixedAmount').value = '';
+  render();
+});
+
+document.getElementById('fixedName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('addFixed').click();
+});
+document.getElementById('fixedAmount').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('addFixed').click();
+});
+
+// ── Add daily ─────────────────────────────────────────────────────────────────
+document.getElementById('addDaily').addEventListener('click', () => {
+  const emoji = document.getElementById('dailyEmoji').value;
+  const name = document.getElementById('dailyName').value.trim();
+  const amount = parseFloat(document.getElementById('dailyAmount').value);
+  if (!name || !amount) return;
+  const key = todayKey();
+  if (!state.daily[key]) state.daily[key] = [];
+  state.daily[key].push({ id: Date.now(), emoji, name, amount });
+  save(state);
+  document.getElementById('dailyName').value = '';
+  document.getElementById('dailyAmount').value = '';
+  activeTab = 'today';
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'today'));
+  render();
+});
+
+document.getElementById('dailyName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('addDaily').click();
+});
+document.getElementById('dailyAmount').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('addDaily').click();
+});
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    activeTab = tab.dataset.tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+    renderDaily();
+  });
+});
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.expense-delete');
+  if (!btn) return;
+  const id = parseInt(btn.dataset.id);
+  const type = btn.dataset.type;
+  if (type === 'fixed') {
+    state.fixed = state.fixed.filter(x => x.id !== id);
+  } else {
+    const date = btn.dataset.date;
+    if (state.daily[date]) {
+      state.daily[date] = state.daily[date].filter(x => x.id !== id);
+      if (!state.daily[date].length) delete state.daily[date];
+    }
+  }
+  save(state);
+  render();
+});
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function dayWord(n) {
+  const mod = n % 10, mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return 'дней';
+  if (mod === 1) return 'день';
+  if (mod >= 2 && mod <= 4) return 'дня';
+  return 'дней';
+}
+
+// ── Initial render ────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
